@@ -174,7 +174,7 @@ deaths_plot <- ggplot(data_filtered, aes(day_start, day_sum_deaths, color=GeoId)
        subtitle = "data from European Centre for Disease Prevention and Control",
        size = "cases since\n 2019-12-31",
        x = "days since 2019-12-31",
-       y = "cumulated cases")+
+       y = "cumulated deaths")+
   scale_color_manual(values = my_colors)+
   geom_label_repel(data_filtered %>% filter(day_start==max(data_filtered$day_start)),
                    mapping = aes(label=`Countries and territories`))+
@@ -188,7 +188,7 @@ deaths_plot_5th_death <- ggplot(data_filtered %>% filter(days_since_5th_death>=0
        subtitle = "data from European Centre for Disease Prevention and Control",
        size = "cases since\n 2019-12-31",
        x = "days since 5th death was reported in country",
-       y = "cumulated cases")+
+       y = "cumulated deaths")+
   scale_color_manual(values = my_colors)+
   geom_label_repel(data_filtered %>% filter(day_start==max(data_filtered$day_start)),
                    mapping = aes(label=`Countries and territories`))+
