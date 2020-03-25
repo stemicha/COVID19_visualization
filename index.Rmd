@@ -44,8 +44,8 @@ my_colors <- c("#5F4690","#1D6996","#38A6A5","#0F8554","#73AF48","#EDAD08","#E17
 
 #create the URL where the dataset is stored with automatic updates every day
 
-url <- paste("https://www.ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide-",format(Sys.time(), "%Y-%m-%d"), ".xlsx", sep = "")
-#url <- "https://www.ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide-2020-03-21.xlsx"
+#url <- paste("https://www.ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide-",format(Sys.time(), "%Y-%m-%d"), ".xlsx", sep = "")
+url <- "https://www.ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide-2020-03-24.xlsx"
 #download the dataset from the website to a local temporary file
 
 GET(url, authenticate(":", ":", type="ntlm"), write_disk(tf <- tempfile(fileext = ".xlsx")))
@@ -85,6 +85,11 @@ data_filtered <- data_in %>% filter(`Countries and territories`%in%top10$`Countr
 #calculate date when 5th death was reported
 data_filtered <- data_filtered %>% group_by(GeoId) %>% 
   mutate(days_since_5th_death = day_start-day_start[which(abs(day_sum_deaths-5)==min(abs(day_sum_deaths-5)))][1]) %>% 
+  ungroup
+
+#calculate date when 1000th case was reported
+data_filtered <- data_filtered %>% group_by(GeoId) %>% 
+  mutate(days_since_1000th_case = day_start-day_start[which(abs(day_sum_cases-1000)==min(abs(day_sum_cases-1000)))][1]) %>% 
   ungroup
 
 # plot world data -----------
@@ -195,6 +200,51 @@ deaths_plot_5th_death <- ggplot(data_filtered %>% filter(days_since_5th_death>=0
   theme_ipsum_rc(base_size = 18)+
   guides(color=F)
 
+# add curves doubling times ----
+#add curves
+doubling_time <- seq(1,6)
+time<- seq(0,60,by = 0.1)
+initial_cases <- 1000
+
+estimated_cases_doubling_time <- c()
+for(i in 1:length(doubling_time)){
+  
+  estimated_cases<- initial_cases*exp(1)^(time*(log(2)/doubling_time[i])) 
+  estimated_cases_doubling_time <- bind_rows(estimated_cases_doubling_time,
+                                             tibble(days = time, 
+                                                    cases = estimated_cases,
+                                                    doubling_time = doubling_time[i]))
+  
+}
+
+
+#plot plot 1000th case reported
+case_plot_1000th_case <- ggplot(data_filtered %>% filter(days_since_1000th_case>=0), aes(days_since_1000th_case, day_sum_cases, color=GeoId)) +
+  geom_line(data = estimated_cases_doubling_time,
+            mapping = aes(days,cases,group = doubling_time,linetype=as.factor(doubling_time)),color="grey")+
+  ylim(c(1000,120000))+
+    geom_label_repel(data= estimated_cases_doubling_time %>% 
+                       filter(cases <110000) %>% 
+                       group_by(doubling_time) %>% 
+                       top_n(n = 1,wt = cases),
+                     mapping = aes(x = days,
+                                   y = cases,
+                                   label=paste("doubling time:\n", doubling_time,"d")),
+                     inherit.aes = F,
+                     color="grey")+
+  geom_point(aes(size = day_sum_deaths))+
+  labs(title = "TOP10 cases - countries: cases of COVID19 ",
+       subtitle = "data from European Centre for Disease Prevention and Control",
+       size = "deaths since\n 2019-12-31",
+       x = "days since 1000th case was reported in country",
+       y = "cumulated cases")+
+  scale_color_manual(values = my_colors)+
+  geom_label_repel(data_filtered %>% filter(day_start==max(data_filtered$day_start)),
+                   mapping = aes(label=`Countries and territories`))+
+  theme_ipsum_rc(base_size = 18)+
+  guides(color=F)+
+  guides(linetype=F)
+
 ```
 
 
@@ -245,6 +295,15 @@ deaths_plot_5th_death
 
 ```
 
+
+## reported cases aligned
+
+Cases over time aligned. Day 0 is the day were the 1000th case was reported.
+
+```{r}
+case_plot_1000th_case
+
+```
 
 
  
