@@ -273,6 +273,32 @@ case_plot_1000th_case <- ggplot(data_filtered %>% filter(days_since_1000th_case>
   guides(color=F)+
   guides(linetype=F)
 
+case_plot_1000th_case_facet <- ggplot(data_filtered %>% filter(days_since_1000th_case>=0), aes(days_since_1000th_case, day_sum_cases, color=GeoId)) +
+  geom_line(data = estimated_cases_doubling_time,
+            mapping = aes(days,cases,group = doubling_time,linetype=as.factor(doubling_time)),color="grey")+
+  ylim(c(1000,120000))+
+    geom_label_repel(data= estimated_cases_doubling_time %>% 
+                       filter(cases <110000) %>% 
+                       group_by(doubling_time) %>% 
+                       top_n(n = 1,wt = cases),
+                     mapping = aes(x = days,
+                                   y = cases,
+                                   label=paste( doubling_time,"d",sep="")),
+                     inherit.aes = F,
+                     color="grey", size=3)+
+  geom_point(aes(size = day_sum_deaths))+
+  labs(title = "TOP10 cases - countries: cases of COVID19 ",
+       subtitle = "data from European Centre for Disease Prevention and Control",
+       size = "deaths since\n 2019-12-31",
+       x = "days since 1000th case was reported in country",
+       y = "cumulated cases")+
+  scale_color_manual(values = my_colors)+
+  theme_ipsum_rc(base_size = 18)+
+  guides(color=F)+
+  guides(linetype=F)+
+  facet_wrap(~`Countries and territories`)
+
+
 ```
 
 
@@ -308,6 +334,11 @@ Cases over time aligned. Day 0 is the day were the 1000th case was reported.
 ```{r}
 case_plot_1000th_case
 ```
+
+```{r,fig.width=12,fig.height=10}
+case_plot_1000th_case_facet
+```
+
 
 ```{r,fig.width=12,fig.height=10}
 cases_plot_1000th_case_per_day
