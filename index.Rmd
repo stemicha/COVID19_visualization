@@ -200,6 +200,35 @@ deaths_plot_5th_death <- ggplot(data_filtered %>% filter(days_since_5th_death>=0
   theme_ipsum_rc(base_size = 18)+
   guides(color=F)
 
+
+#deaths per day aligned
+
+deaths_plot_5th_death_per_day <- ggplot(data_filtered %>% filter(days_since_5th_death>=0), aes(days_since_5th_death, Deaths, fill=GeoId)) +
+  geom_bar(stat="identity")+
+  labs(title = "TOP10 cases - countries: deaths of COVID19 per day",
+       subtitle = "data from European Centre for Disease Prevention and Control",
+       size = "cases since\n 2019-12-31",
+       x = "days since 5th death was reported in country",
+       y = "deaths per day")+
+  scale_fill_manual(values = my_colors)+
+  theme_ipsum_rc(base_size = 18)+
+  guides(fill=F)+
+  facet_wrap(~`Countries and territories`)
+
+#cases per day aligned
+
+cases_plot_1000th_case_per_day <- ggplot(data_filtered %>% filter(days_since_1000th_case>=0), aes(days_since_1000th_case, Cases, fill=GeoId)) +
+  geom_bar(stat="identity")+
+  labs(title = "TOP10 cases - countries: deaths of COVID19 per day",
+       subtitle = "data from European Centre for Disease Prevention and Control",
+       size = "cases since\n 2019-12-31",
+       x = "days since 1000th cases was reported in country",
+       y = "cases per day")+
+  scale_fill_manual(values = my_colors)+
+  theme_ipsum_rc(base_size = 18)+
+  guides(fill=F)+
+  facet_wrap(~`Countries and territories`)
+
 # add curves doubling times ----
 #add curves
 doubling_time <- seq(1,6)
@@ -251,7 +280,6 @@ case_plot_1000th_case <- ggplot(data_filtered %>% filter(days_since_1000th_case>
 
 
 
-
 # current status {.tabset .tabset-fade}
 
 The cases reported since 2019-12-31 by country.
@@ -292,7 +320,10 @@ Deaths over time aligned. Day 0 is the day were the 5th death was reported.
 
 ```{r}
 deaths_plot_5th_death
+```
 
+```{r,fig.width=12,fig.height=10}
+deaths_plot_5th_death_per_day
 ```
 
 
@@ -302,10 +333,9 @@ Cases over time aligned. Day 0 is the day were the 1000th case was reported.
 
 ```{r}
 case_plot_1000th_case
-
 ```
 
-
- 
-
+```{r,fig.width=12,fig.height=10}
+cases_plot_1000th_case_per_day
+```
 
