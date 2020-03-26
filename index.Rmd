@@ -301,16 +301,16 @@ world_map_plot
 The cases and deaths over time since 2019-12-31 by country. Top10 countries selected on individual total cases reported.
 
 
-## reported cases
+## reported cases aligned
+
+Cases over time aligned. Day 0 is the day were the 1000th case was reported.
 
 ```{r}
-cases_plot
+case_plot_1000th_case
 ```
 
-## reported deaths
-
-```{r}
-deaths_plot
+```{r,fig.width=12,fig.height=10}
+cases_plot_1000th_case_per_day
 ```
 
 ## reported deaths aligned
@@ -326,15 +326,19 @@ deaths_plot_1000th_case_per_day
 ```
 
 
-## reported cases aligned
 
-Cases over time aligned. Day 0 is the day were the 1000th case was reported.
+## reported cases
 
 ```{r}
-case_plot_1000th_case
+cases_plot
 ```
 
-```{r,fig.width=12,fig.height=10}
-cases_plot_1000th_case_per_day
+## reported deaths
+
+```{r}
+deaths_plot
 ```
+
+
+
 
