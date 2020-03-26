@@ -335,7 +335,7 @@ Cases over time aligned. Day 0 is the day were the 1000th case was reported.
 case_plot_1000th_case
 ```
 
-```{r,fig.width=12,fig.height=10}
+```{r,fig.width=16,fig.height=10}
 case_plot_1000th_case_facet
 ```
 
