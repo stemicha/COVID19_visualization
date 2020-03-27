@@ -38,128 +38,68 @@ library(plotly)
 library(patchwork)
 library(hrbrthemes)
 library(maps)
+library(DT)
+library(helfRlein)
 
 #colors setup
 my_colors <- c("#5F4690","#1D6996","#38A6A5","#0F8554","#73AF48","#EDAD08","#E17C05","#CC503E","#94346E","#6F4070","#994E95","#666666")
 
 #create the URL where the dataset is stored with automatic updates every day
 
-#url <- paste("https://www.ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide-",format(Sys.time(), "%Y-%m-%d"), ".xlsx", sep = "")
-url <- "https://www.ecdc.europa.eu/sites/default/files/documents/COVID-19-geographic-disbtribution-worldwide-2020-03-26.xlsx"
+GET("https://opendata.ecdc.europa.eu/covid19/casedistribution/csv", authenticate(":", ":", type="ntlm"), write_disk(tf <- tempfile(fileext = ".csv")))
 #download the dataset from the website to a local temporary file
 
-GET(url, authenticate(":", ":", type="ntlm"), write_disk(tf <- tempfile(fileext = ".xlsx")))
+#read the Dataset sheet into “R”. The dataset will be called "data".
+data_in <- read_csv(tf)
 
-#read the Dataset from url
+# date format
 
-data_in <- read_excel(tf)
+data_in <- data_in %>% mutate(dateRep = as.Date(dateRep, "%d/%m/%Y"))
+
+#rename contries Territories
+data_in <- data_in %>% mutate(countriesAndTerritories= char_replace(countriesAndTerritories))
 
 #write_file
 write_delim(x = data_in,path = "COVID_cases_deaths_reported_by_ECDC.tab",delim = "\t",col_names = T)
 
 data_aggregated <- data_in %>% 
-  group_by(`Countries and territories`) %>% 
-  summarise(sum_of_cases = sum(Cases),sum_of_deaths = sum(Deaths)) %>% 
+  group_by(countriesAndTerritories) %>% 
+  summarise(sum_of_cases = sum(cases),sum_of_deaths = sum(deaths)) %>% 
   arrange(desc(sum_of_cases))
 
 #sum up day for day cases and deaths
-data_in <- data_in %>%  mutate(day_start = dense_rank(DateRep))
+data_in <- data_in %>%  mutate(day_start = dense_rank(dateRep))
 
 data_in$day_sum_cases <- NA
 data_in$day_sum_deaths <- NA
 
-for(i in unique(data_in$GeoId)){
+for(i in unique(data_in$geoId)){
   for(k in unique(data_in$day_start)){
-    data_in$day_sum_cases[which(data_in$GeoId==i & data_in$day_start==k)] <- 
-      sum(data_in$Cases[which(data_in$GeoId==i & data_in$day_start<=k)])
-    data_in$day_sum_deaths[which(data_in$GeoId==i & data_in$day_start==k)] <- 
-      sum(data_in$Deaths[which(data_in$GeoId==i & data_in$day_start<=k)])
+    data_in$day_sum_cases[which(data_in$geoId==i & data_in$day_start==k)] <- 
+      sum(data_in$cases[which(data_in$geoId==i & data_in$day_start<=k)])
+    data_in$day_sum_deaths[which(data_in$geoId==i & data_in$day_start==k)] <- 
+      sum(data_in$deaths[which(data_in$geoId==i & data_in$day_start<=k)])
   }
 }
 
 
 #select  Top10 countries
 top10<- data_aggregated[1:10,]
-data_filtered <- data_in %>% filter(`Countries and territories`%in%top10$`Countries and territories`)
+data_filtered <- data_in %>% filter(countriesAndTerritories%in%top10$countriesAndTerritories)
 
 #calculate date when 5th death was reported
-data_filtered <- data_filtered %>% group_by(GeoId) %>% 
+data_filtered <- data_filtered %>% group_by(geoId) %>% 
   mutate(days_since_5th_death = day_start-day_start[which(abs(day_sum_deaths-5)==min(abs(day_sum_deaths-5)))][1]) %>% 
   ungroup
 
 #calculate date when 1000th case was reported
-data_filtered <- data_filtered %>% group_by(GeoId) %>% 
+data_filtered <- data_filtered %>% group_by(geoId) %>% 
   mutate(days_since_1000th_case = day_start-day_start[which(abs(day_sum_cases-1000)==min(abs(day_sum_cases-1000)))][1]) %>% 
   ungroup
 
-# plot world data -----------
-# Retrievethe map data
-
-data_in <- data_in %>% mutate(countries = str_replace_all(`Countries and territories`,"_"," "))
-data_in <- data_in %>% mutate(countries = str_replace_all(countries,"Guinea-Bissau","Guinea"))
-data_in <- data_in %>% mutate(countries = str_replace_all(countries,"United Kingdom","UK"))
-data_in <- data_in %>% mutate(countries = str_replace_all(countries,"United States of America","USA"))
-data_in <- data_in %>% mutate(countries = str_replace_all(countries,"CANADA","Canada"))
-data_in <- data_in %>% mutate(countries = str_replace_all(countries,"Antigua and Barbuda","Antigua"))
-data_in <- data_in %>% mutate(countries = str_replace_all(countries,"Brunei Darussalam","Brunei"))
-data_in <- data_in %>% mutate(countries = str_replace_all(countries,"Saint Vincent and the Grenadines","Grenadines"))
-data_in <- data_in %>% mutate(countries = str_replace_all(countries,"United Republic of Tanzania","Tanzania"))
-data_in <- data_in %>% mutate(countries = str_replace_all(countries,"Trinidad and Tobago","Trinidad"))
-
-
-
-
-world_map_data<- map_data("world",region = unique(data_in$countries),wrap=c(-180,180))
-
-world_map_data_merged <- left_join(data_in,world_map_data,by=c("countries" = "region"))
-
-today_world_map_data <- world_map_data_merged %>% filter(day_start==max(world_map_data_merged$day_start))
-
-
-#map plot
-world_map_plot <- ggplot(today_world_map_data, aes(x = long, y = lat)) +
-  geom_polygon(aes( group = group, fill = day_sum_cases),color="lightgrey",size=0.1)+
-  scale_fill_distiller(palette = "Spectral",direction = -1)+
-  labs(title = "World",fill = "total cases\nsince 2019-12-31",subtitle = unique(today_world_map_data$DateRep))+
-  theme_ipsum_rc(base_size = 18)
-
-
-
-
-#add data to european countries
-
-# Some EU Contries
-eu_countries <- c(
-  "Portugal", "Spain", "France", "Switzerland", "Germany",
-  "Austria", "Belgium", "UK", "Netherlands","Luxembourg",
-  "Denmark", "Poland", "Italy", "Greece","Bulgaria",
-  "Croatia", "Slovenia", "Hungary", "Slovakia","Romania",
-  "Czech republic"
-)
-# Retrievethe map data
-eu_map_data <- map_data("world", region = eu_countries,wrap=c(-180,180))
-#unique(eu_map_data$region)
-eu_map_data$region[which(eu_map_data$region=="UK")] <- "United_Kingdom"
-eu_map_data$region[which(eu_map_data$region=="Czech Republic")] <- "Czech_Republic"
-#compute mean for labeling
-eu_map_data_label <- eu_map_data %>%
-  group_by(region) %>%
-  summarise(long = mean(long), lat = mean(lat))
-eu_map_data_merged <- left_join(data_in %>% filter(`Countries and territories`%in%unique(eu_map_data$region)),eu_map_data,
-                            by=c("Countries and territories" = "region"))
-
-today_eu_data <- eu_map_data_merged %>% filter(day_start==max(eu_map_data_merged$day_start))
-#map plot
-eu_map_plot <- ggplot(today_eu_data, aes(x = long, y = lat)) +
-  geom_polygon(aes( group = group, fill = day_sum_cases))+
-  geom_text(aes(label = region), data = eu_map_data_label,  size = 3, hjust = 0.5)+
-  scale_fill_distiller(palette = "Spectral",direction = -1)+
-  labs(title = "some european countires",fill = "total cases\nsince 2019-12-31",subtitle = unique(today_eu_data$DateRep))+
-  theme_ipsum_rc(base_size = 18)
-
 
 #case plot
-cases_plot <- ggplot(data_filtered, aes(day_start, day_sum_cases, color=GeoId)) +
+cases_plot <- ggplot(data_filtered, aes(day_start, day_sum_cases, color=geoId)) +
   geom_point(aes(size = day_sum_deaths,))+
   labs(title = "TOP10 cases - countries: cases of COVID19 ",
        subtitle = "data from European Centre for Disease Prevention and Control",
@@ -168,12 +108,12 @@ cases_plot <- ggplot(data_filtered, aes(day_start, day_sum_cases, color=GeoId)) 
        y = "cumulated cases")+
   scale_color_manual(values = my_colors)+
   geom_label_repel(data_filtered %>% filter(day_start==max(data_filtered$day_start)),
-                   mapping = aes(label=`Countries and territories`))+
+                   mapping = aes(label=countriesAndTerritories))+
   theme_ipsum_rc(base_size = 18)+
   guides(color=F)
 
 #deaths plot
-deaths_plot <- ggplot(data_filtered, aes(day_start, day_sum_deaths, color=GeoId)) +
+deaths_plot <- ggplot(data_filtered, aes(day_start, day_sum_deaths, color=geoId)) +
   geom_point(aes(size = day_sum_cases,))+
   labs(title = "TOP10 cases - countries: deaths of COVID19 ",
        subtitle = "data from European Centre for Disease Prevention and Control",
@@ -182,12 +122,12 @@ deaths_plot <- ggplot(data_filtered, aes(day_start, day_sum_deaths, color=GeoId)
        y = "cumulated deaths")+
   scale_color_manual(values = my_colors)+
   geom_label_repel(data_filtered %>% filter(day_start==max(data_filtered$day_start)),
-                   mapping = aes(label=`Countries and territories`))+
+                   mapping = aes(label=countriesAndTerritories))+
   theme_ipsum_rc(base_size = 18)+
   guides(color=F)
 
 #deaths plot 1000th reported
-deaths_plot_1000th_case <- ggplot(data_filtered %>% filter(days_since_1000th_case>=0), aes(days_since_1000th_case, day_sum_deaths, color=GeoId)) +
+deaths_plot_1000th_case <- ggplot(data_filtered %>% filter(days_since_1000th_case>=0), aes(days_since_1000th_case, day_sum_deaths, color=geoId)) +
   geom_point(aes(size = day_sum_cases,))+
   labs(title = "TOP10 cases - countries: deaths of COVID19 ",
        subtitle = "data from European Centre for Disease Prevention and Control",
@@ -196,12 +136,12 @@ deaths_plot_1000th_case <- ggplot(data_filtered %>% filter(days_since_1000th_cas
        y = "cumulated deaths")+
   scale_color_manual(values = my_colors)+
   geom_label_repel(data_filtered %>% filter(day_start==max(data_filtered$day_start)),
-                   mapping = aes(label=`Countries and territories`),box.padding = 0.5)+
+                   mapping = aes(label=countriesAndTerritories),box.padding = 0.5)+
   theme_ipsum_rc(base_size = 18)+
   guides(color=F)
 
 
-deaths_plot_1000th_case_facet <- ggplot(data_filtered %>% filter(days_since_1000th_case>=0), aes(days_since_1000th_case, day_sum_deaths, color=GeoId)) +
+deaths_plot_1000th_case_facet <- ggplot(data_filtered %>% filter(days_since_1000th_case>=0), aes(days_since_1000th_case, day_sum_deaths, color=geoId)) +
   stat_smooth(method = "gam",fullrange = T,formula = y ~ s(x, bs = "cs"))+
   geom_point(aes(size = day_sum_cases,))+
   labs(title = "TOP10 cases - countries: deaths of COVID19 ",
@@ -211,18 +151,16 @@ deaths_plot_1000th_case_facet <- ggplot(data_filtered %>% filter(days_since_1000
        y = "cumulated deaths", 
        caption ="Generalized additive models with integrated smoothness estimation were added -- y ~ s(x, bs = 'cs')")+
   scale_color_manual(values = my_colors)+
-  geom_label_repel(data_filtered %>% filter(day_start==max(data_filtered$day_start)),
-                   mapping = aes(label=`Countries and territories`),box.padding = 0.5)+
   theme_ipsum_rc(base_size = 18)+
   guides(color=F)+
-  facet_wrap(~`Countries and territories`)
+  facet_wrap(~countriesAndTerritories)
 
 
 
 
 #deaths per day aligned
 
-deaths_plot_1000th_case_per_day <- ggplot(data_filtered %>% filter(days_since_1000th_case>=0), aes(days_since_1000th_case, Deaths, fill=GeoId)) +
+deaths_plot_1000th_case_per_day <- ggplot(data_filtered %>% filter(days_since_1000th_case>=0), aes(days_since_1000th_case, deaths, fill=geoId)) +
   geom_bar(stat="identity")+
   labs(title = "TOP10 cases - countries: deaths of COVID19 per day",
        subtitle = "data from European Centre for Disease Prevention and Control",
@@ -232,12 +170,12 @@ deaths_plot_1000th_case_per_day <- ggplot(data_filtered %>% filter(days_since_10
   scale_fill_manual(values = my_colors)+
   theme_ipsum_rc(base_size = 18)+
   guides(fill=F)+
-  facet_wrap(~`Countries and territories`)
+  facet_wrap(~countriesAndTerritories)
 
 
 
 #cases per day aligned
-cases_plot_1000th_case_per_day <- ggplot(data_filtered %>% filter(days_since_1000th_case>=0), aes(days_since_1000th_case, Cases, fill=GeoId)) +
+cases_plot_1000th_case_per_day <- ggplot(data_filtered %>% filter(days_since_1000th_case>=0), aes(days_since_1000th_case, cases, fill=geoId)) +
   geom_bar(stat="identity")+
   labs(title = "TOP10 cases - countries: deaths of COVID19 per day",
        subtitle = "data from European Centre for Disease Prevention and Control",
@@ -247,7 +185,7 @@ cases_plot_1000th_case_per_day <- ggplot(data_filtered %>% filter(days_since_100
   scale_fill_manual(values = my_colors)+
   theme_ipsum_rc(base_size = 18)+
   guides(fill=F)+
-  facet_wrap(~`Countries and territories`)
+  facet_wrap(~countriesAndTerritories)
 
 # add curves doubling times ----
 #add curves
@@ -268,7 +206,7 @@ for(i in 1:length(doubling_time)){
 
 
 #plot plot 1000th case reported
-case_plot_1000th_case <- ggplot(data_filtered %>% filter(days_since_1000th_case>=0), aes(days_since_1000th_case, day_sum_cases, color=GeoId)) +
+case_plot_1000th_case <- ggplot(data_filtered %>% filter(days_since_1000th_case>=0), aes(days_since_1000th_case, day_sum_cases, color=geoId)) +
   geom_line(data = estimated_cases_doubling_time,
             mapping = aes(days,cases,group = doubling_time,linetype=as.factor(doubling_time)),color="grey")+
   ylim(c(1000,120000))+
@@ -289,13 +227,13 @@ case_plot_1000th_case <- ggplot(data_filtered %>% filter(days_since_1000th_case>
        y = "cumulated cases")+
   scale_color_manual(values = my_colors)+
   geom_label_repel(data_filtered %>% filter(day_start==max(data_filtered$day_start)),
-                   mapping = aes(label=`Countries and territories`),box.padding = 0.5)+
+                   mapping = aes(label=countriesAndTerritories),box.padding = 0.5)+
   theme_ipsum_rc(base_size = 18)+
   guides(color=F)+
   guides(linetype=F)
 
 
-case_plot_1000th_case_facet <- ggplot(data_filtered %>% filter(days_since_1000th_case>=0), aes(days_since_1000th_case, day_sum_cases, color=GeoId)) +
+case_plot_1000th_case_facet <- ggplot(data_filtered %>% filter(days_since_1000th_case>=0), aes(days_since_1000th_case, day_sum_cases, color=geoId)) +
   stat_smooth(method = "gam",fullrange = T,formula = y ~ s(x, bs = "cs"))+
   geom_line(data = estimated_cases_doubling_time,
             mapping = aes(days,cases,group = doubling_time,linetype=as.factor(doubling_time)),color="grey")+
@@ -320,7 +258,7 @@ case_plot_1000th_case_facet <- ggplot(data_filtered %>% filter(days_since_1000th
   theme_ipsum_rc(base_size = 18)+
   guides(color=F)+
   guides(linetype=F)+
-  facet_wrap(~`Countries and territories`)
+  facet_wrap(~countriesAndTerritories)
 
 ```
 
@@ -328,21 +266,26 @@ case_plot_1000th_case_facet <- ggplot(data_filtered %>% filter(days_since_1000th
 
 
 
-# current status {.tabset .tabset-fade}
+# current status 
 
-The cases reported since 2019-12-31 by country.
-
-
-## EU map 
+The cases/deaths reported since 2019-12-31 by country.
 
 ```{r}
-eu_map_plot
-```
+DT::datatable(data_aggregated, 
+          rownames = F,
+          filter = 'top', 
+          options = list(pageLength = 10, autoWidth = TRUE),
+          caption = 'cases/deaths reported since 2019-12-31 by country')%>% formatStyle(columns = c('sum_of_deaths'),
+  background = styleColorBar(range(data_aggregated[,-c(1:2)]), 'red'),
+  backgroundSize = '98% 88%',
+  backgroundRepeat = 'no-repeat',
+  backgroundPosition = 'center')%>% 
+formatStyle(columns = c('sum_of_cases'),
+  background = styleColorBar(range(data_aggregated[,-c(1,3)]), 'orange'),
+  backgroundSize = '98% 88%',
+  backgroundRepeat = 'no-repeat',
+  backgroundPosition = 'center')
 
-## world map
-
-```{r}
-world_map_plot
 ```
 
 # cases and deaths over time {.tabset .tabset-fade}
@@ -352,7 +295,7 @@ The cases and deaths over time since 2019-12-31 by country. Top10 countries sele
 
 ## reported cases aligned
 
-Cases over time aligned. Day 0 is the day were the 1000th case was reported.
+cases over time aligned. Day 0 is the day were the 1000th case was reported.
 
 ```{r}
 case_plot_1000th_case
@@ -369,7 +312,7 @@ cases_plot_1000th_case_per_day
 
 ## reported deaths aligned
 
-Deaths over time aligned. Day 0 is the day were the 5th death was reported.
+deaths over time aligned. Day 0 is the day were the 5th death was reported.
 
 ```{r}
 deaths_plot_1000th_case
