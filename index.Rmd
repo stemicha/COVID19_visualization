@@ -175,7 +175,7 @@ deaths_plot_1000th_case_per_day <- ggplot(data_filtered %>% filter(days_since_10
 #cases per day aligned
 cases_plot_1000th_case_per_day <- ggplot(data_filtered %>% filter(days_since_1000th_case>=0), aes(days_since_1000th_case, cases, fill=geoId)) +
   geom_bar(stat="identity")+
-  labs(title = "TOP10 cases - countries: deaths of COVID19 per day",
+  labs(title = "TOP10 cases - countries: cases of COVID19 per day",
        subtitle = "data from European Centre for Disease Prevention and Control",
        size = "cases since\n 2019-12-31",
        x = "days since 1000th cases was reported in country",
