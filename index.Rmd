@@ -21,6 +21,9 @@ knitr::opts_chunk$set(echo=F,message=F,warning=F,fig.width=10,fig.height=6)
 
 COVID 2019 data from European Centre for Disease Prevention and Control 
 
+
+
+<!-- CALCULATIONS -->
 ```{r}
 # COVID 2019 data from European Centre for Disease Prevention and Control
 
@@ -37,6 +40,12 @@ library(patchwork)
 library(hrbrthemes)
 library(DT)
 library(helfRlein)
+library(extrafont)
+library(emojifont)
+
+#font 
+# "Font Awesome 5 Free Solid" should be installed
+# download and install from web: https://fontawesome.com/download
 
 #colors setup
 my_colors <- c("#5F4690","#1D6996","#38A6A5","#0F8554","#73AF48","#EDAD08","#E17C05","#CC503E","#94346E","#6F4070","#994E95","#666666")
@@ -49,14 +58,14 @@ GET("https://opendata.ecdc.europa.eu/covid19/casedistribution/csv", authenticate
 #read the Dataset sheet into “R”. The dataset will be called "data".
 data_in <- read_csv(tf)
 
-# date format
+# date format----
 
 data_in <- data_in %>% mutate(dateRep = as.Date(dateRep, "%d/%m/%Y"))
 
-#rename contries Territories
+#rename contries Territories----
 data_in <- data_in %>% mutate(countriesAndTerritories= char_replace(countriesAndTerritories))
 
-#write_file
+#write_file----
 write_delim(x = data_in,path = "COVID_cases_deaths_reported_by_ECDC.tab",delim = "\t",col_names = T)
 
 data_aggregated <- data_in %>% 
@@ -68,7 +77,7 @@ data_aggregated <- data_in %>%
 
 
 
-#sum up day for day cases and deaths
+#sum up day for day cases and deaths----
 data_in <- data_in %>%  mutate(day_start = dense_rank(dateRep))
 
 data_in$day_sum_cases <- NA
@@ -83,7 +92,7 @@ for(i in unique(data_in$geoId)){
   }
 }
 
-# global area plot
+# global area plot----
 global_cases_deaths_daily <- data_in %>% group_by(dateRep) %>% summarise(cases = sum(cases,na.rm = T), deaths = sum(deaths,na.rm = T)) %>%
 gather(cases,deaths,key = "cases_or_deaths",value = "value")
 
@@ -114,22 +123,57 @@ global_cases_deaths_overall_plot <- ggplot(data = global_cases_deaths_overall,ma
   geom_label_repel(data = global_cases_deaths_overall %>% filter(dateRep==max(dateRep)),mapping = aes(label = format(value, nsmall=0, big.mark=",")),segment.colour = "black")
 
 
-#select  Top10 countries
+# create valueBoxes----
+##prepare a data object to render a summary graphic
+
+current_global_overall <- global_cases_deaths_overall %>% filter(dateRep==max(dateRep))
+current_global_daily <- global_cases_deaths_daily %>% filter(dateRep==max(dateRep))
+
+figures <- 4
+df <- data.frame(
+    x = cumsum(c(2, rep(6.5, figures-1))),
+    y = rep(2, figures),
+    h = rep(4, figures),
+    w = rep(6, figures))
+df$key <- c("daily cases", "daily deaths","summed cases","summed deaths")
+df$icon <- fontawesome(c("fa-hospital-o","fa-ban","fa-hospital-o","fa-ban"))
+df$colour <- c("#006064","#BF360C","#01579B","#B71C1C")
+df$text_colour <- c("#B2EBF2","#FFCCBC","#B3E5FC","#FFCDD2")
+df$info <- c(current_global_daily$value[1],
+             current_global_daily$value[2],
+             current_global_overall$value[1],
+             current_global_overall$value[2])
+#valueBox display----
+SummaryValueBoxes <- ggplot(df, aes(x, y, height = h, width = w, label = key)) +
+    geom_tile(aes(fill=key)) +
+  scale_fill_manual(values = df$colour)+
+    geom_text(color = df$text_colour, hjust="left", nudge_y=-1.5, nudge_x=-2.6, size=5) +
+    geom_text(label=format(df$info, nsmall=0, big.mark=","), size=10, color = "white", fontface = "bold", nudge_x=-2.6, hjust="left") +
+  geom_text(label=df$icon, family="Font Awesome 5 Free Solid", colour="white", size=10, hjust="right", nudge_x=2.85, nudge_y=0.85) +
+    coord_fixed() + 
+    theme_void() +
+    guides(fill = F)
+
+
+
+
+
+#select  Top10 countries----
 top10<- data_aggregated[1:10,]
 data_filtered <- data_in %>% filter(countriesAndTerritories%in%top10$countriesAndTerritories)
 
-#calculate date when 5th death was reported
+#calculate date when 5th death was reported----
 data_filtered <- data_filtered %>% group_by(geoId) %>% 
   mutate(days_since_5th_death = day_start-day_start[which(abs(day_sum_deaths-5)==min(abs(day_sum_deaths-5)))][1]) %>% 
   ungroup
 
-#calculate date when 1000th case was reported
+#calculate date when 1000th case was reported----
 data_filtered <- data_filtered %>% group_by(geoId) %>% 
   mutate(days_since_1000th_case = day_start-day_start[which(abs(day_sum_cases-1000)==min(abs(day_sum_cases-1000)))][1]) %>% 
   ungroup
 
 
-#case plot
+#case plot----
 cases_plot <- ggplot(data_filtered, aes(day_start, day_sum_cases, color=geoId)) +
   geom_point(aes(size = day_sum_deaths))+
   labs(title = "TOP10 cases - countries: cases of COVID19 ",
@@ -143,7 +187,7 @@ cases_plot <- ggplot(data_filtered, aes(day_start, day_sum_cases, color=geoId)) 
   theme_ipsum_rc(base_size = 18)+
   guides(color=F)
 
-#deaths plot
+#deaths plot----
 deaths_plot <- ggplot(data_filtered, aes(day_start, day_sum_deaths, color=geoId)) +
   geom_point(aes(size = day_sum_cases))+
   labs(title = "TOP10 cases - countries: deaths of COVID19 ",
@@ -157,7 +201,7 @@ deaths_plot <- ggplot(data_filtered, aes(day_start, day_sum_deaths, color=geoId)
   theme_ipsum_rc(base_size = 18)+
   guides(color=F)
 
-#deaths plot 1000th reported
+#deaths plot 1000th reported----
 deaths_plot_1000th_case <- ggplot(data_filtered %>% filter(days_since_1000th_case>=0), aes(days_since_1000th_case, day_sum_deaths, color=geoId)) +
   geom_point(aes(size = day_sum_cases))+
   labs(title = "TOP10 cases - countries: deaths of COVID19 ",
@@ -189,7 +233,7 @@ deaths_plot_1000th_case_facet <- ggplot(data_filtered %>% filter(days_since_1000
 
 
 
-#deaths per day aligned
+#deaths per day aligned----
 
 deaths_plot_1000th_case_per_day <- ggplot(data_filtered %>% filter(days_since_1000th_case>=0), aes(days_since_1000th_case, deaths, fill=geoId)) +
   geom_bar(stat="identity")+
@@ -205,7 +249,7 @@ deaths_plot_1000th_case_per_day <- ggplot(data_filtered %>% filter(days_since_10
 
 
 
-#cases per day aligned
+#cases per day aligned----
 cases_plot_1000th_case_per_day <- ggplot(data_filtered %>% filter(days_since_1000th_case>=0), aes(days_since_1000th_case, cases, fill=geoId)) +
   geom_bar(stat="identity")+
   labs(title = "TOP10 cases - countries: cases of COVID19 per day",
@@ -236,7 +280,7 @@ for(i in 1:length(doubling_time)){
 }
 
 
-#plot plot 1000th case reported
+#plot plot 1000th case reported----
 case_plot_1000th_case <- ggplot(data_filtered %>% filter(days_since_1000th_case>=0), aes(days_since_1000th_case, day_sum_cases, color=geoId)) +
   geom_line(data = estimated_cases_doubling_time,
             mapping = aes(days,cases,group = doubling_time,linetype=as.factor(doubling_time)),color="grey")+
@@ -296,16 +340,18 @@ case_plot_1000th_case_facet <- ggplot(data_filtered %>% filter(days_since_1000th
 
 ```
 
-
-
+<!-- START RMD display here -->
 
 <span style="color:#0277BD;font-size: 18pt">data update from: `r max(data_in$dateRep)`</span>
 
 # current status 
+```{r,fig.width=10,fig.height=2}
+SummaryValueBoxes
+```
 
 The cases/deaths reported since 2019-12-31 by country.
 
-```{r,fig.width=10,fig.height=16}
+```{r,fig.width=10,fig.height=12}
 global_cases_deaths_daily_plot/global_cases_deaths_overall_plot
 ```
 
