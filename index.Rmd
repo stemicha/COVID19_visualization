@@ -1,7 +1,6 @@
 ---
-title: "COVID19 visualization"
+title: "COVID19 visualization (ECDC)"
 author: "Stephan Michalik"
-date: '`r format(Sys.Date(), "%B %d, %Y")`'
 mail: "stephan.michalik@uni-greifswald.de"
 output: 
   html_document:
@@ -98,7 +97,7 @@ data_filtered <- data_filtered %>% group_by(geoId) %>%
 
 #case plot
 cases_plot <- ggplot(data_filtered, aes(day_start, day_sum_cases, color=geoId)) +
-  geom_point(aes(size = day_sum_deaths,))+
+  geom_point(aes(size = day_sum_deaths))+
   labs(title = "TOP10 cases - countries: cases of COVID19 ",
        subtitle = "data from European Centre for Disease Prevention and Control",
        size = "deaths since\n 2019-12-31",
@@ -112,7 +111,7 @@ cases_plot <- ggplot(data_filtered, aes(day_start, day_sum_cases, color=geoId)) 
 
 #deaths plot
 deaths_plot <- ggplot(data_filtered, aes(day_start, day_sum_deaths, color=geoId)) +
-  geom_point(aes(size = day_sum_cases,))+
+  geom_point(aes(size = day_sum_cases))+
   labs(title = "TOP10 cases - countries: deaths of COVID19 ",
        subtitle = "data from European Centre for Disease Prevention and Control",
        size = "cases since\n 2019-12-31",
@@ -126,7 +125,7 @@ deaths_plot <- ggplot(data_filtered, aes(day_start, day_sum_deaths, color=geoId)
 
 #deaths plot 1000th reported
 deaths_plot_1000th_case <- ggplot(data_filtered %>% filter(days_since_1000th_case>=0), aes(days_since_1000th_case, day_sum_deaths, color=geoId)) +
-  geom_point(aes(size = day_sum_cases,))+
+  geom_point(aes(size = day_sum_cases))+
   labs(title = "TOP10 cases - countries: deaths of COVID19 ",
        subtitle = "data from European Centre for Disease Prevention and Control",
        size = "cases since\n 2019-12-31",
@@ -207,14 +206,15 @@ for(i in 1:length(doubling_time)){
 case_plot_1000th_case <- ggplot(data_filtered %>% filter(days_since_1000th_case>=0), aes(days_since_1000th_case, day_sum_cases, color=geoId)) +
   geom_line(data = estimated_cases_doubling_time,
             mapping = aes(days,cases,group = doubling_time,linetype=as.factor(doubling_time)),color="grey")+
-  ylim(c(1000,120000))+
+  ylim(c(1000,max(data_filtered$day_sum_cases)*0.4+max(data_filtered$day_sum_cases)))+
     geom_label_repel(data= estimated_cases_doubling_time %>% 
-                       filter(cases <110000) %>% 
+                       filter(cases < max(data_filtered$day_sum_cases)*0.4+
+                                max(data_filtered$day_sum_cases)) %>% 
                        group_by(doubling_time) %>% 
                        top_n(n = 1,wt = cases),
                      mapping = aes(x = days,
                                    y = cases,
-                                   label=paste("doubling time:\n", doubling_time,"d")),
+                                   label=paste(doubling_time,"d",sep="")),
                      inherit.aes = F,
                      color="grey")+
   geom_point(aes(size = day_sum_deaths))+
@@ -235,14 +235,16 @@ case_plot_1000th_case_facet <- ggplot(data_filtered %>% filter(days_since_1000th
   stat_smooth(method = "gam",fullrange = T,formula = y ~ s(x, bs = "cs"))+
   geom_line(data = estimated_cases_doubling_time,
             mapping = aes(days,cases,group = doubling_time,linetype=as.factor(doubling_time)),color="grey")+
-  ylim(c(1000,120000))+
+  ylim(c(1000,max(data_filtered$day_sum_cases)*0.4+
+           max(data_filtered$day_sum_cases)))+
     geom_label_repel(data= estimated_cases_doubling_time %>% 
-                       filter(cases <110000) %>% 
+                       filter(cases < max(data_filtered$day_sum_cases)*0.4+
+                                max(data_filtered$day_sum_cases)) %>% 
                        group_by(doubling_time) %>% 
                        top_n(n = 1,wt = cases),
                      mapping = aes(x = days,
                                    y = cases,
-                                   label=paste( doubling_time,"d",sep="")),
+                                   label=paste(doubling_time,"d",sep="")),
                      inherit.aes = F,
                      color="grey", size=3)+
   geom_point(aes(size = day_sum_deaths))+
@@ -263,6 +265,7 @@ case_plot_1000th_case_facet <- ggplot(data_filtered %>% filter(days_since_1000th
 
 
 
+<span style="color:#0277BD;font-size: 18pt">data update from: `r max(data_in$dateRep)`</span>
 
 # current status 
 
