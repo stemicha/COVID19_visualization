@@ -29,7 +29,7 @@ COVID 2019 data from European Centre for Disease Prevention and Control
 
 
 #these libraries are necessary
-
+library(shiny)
 library(readxl)
 library(httr)
 library(tidyverse)
@@ -42,6 +42,7 @@ library(DT)
 library(helfRlein)
 library(extrafont)
 library(emojifont)
+library(plotly)
 
 #font 
 # "Font Awesome 5 Free Solid" should be installed
@@ -80,6 +81,7 @@ data_aggregated <- data_in %>%
 
 
 
+
 #sum up day for day cases and deaths----
 data_in <- data_in %>%  mutate(day_start = dense_rank(dateRep))
 
@@ -94,6 +96,14 @@ for(i in unique(data_in$geoId)){
       sum(data_in$deaths[which(data_in$geoId==i & data_in$day_start<=k)])
   }
 }
+
+#generate current data
+current_data_in <- data_in %>% 
+                filter(dateRep==max(dateRep)) %>% 
+                select(countriesAndTerritories,cases,deaths,day_sum_cases,day_sum_deaths) %>% 
+                arrange(desc(day_sum_cases)) %>% 
+                rename(total_cases = day_sum_cases,total_deaths = day_sum_deaths)
+
 
 # global area plot----
 global_cases_deaths_daily <- data_in %>% group_by(dateRep) %>% summarise(cases = sum(cases,na.rm = T), deaths = sum(deaths,na.rm = T)) %>%
@@ -347,6 +357,285 @@ case_plot_1000th_case_facet <- ggplot(data_filtered %>% filter(days_since_1000th
 
 <span style="color:#0277BD;font-size: 18pt">data update from: `r max(data_in$dateRep)`</span>
 
+# time line plots {.tabset .tabset-fade}
+
+- **point saturation:** daily cases >> points more saturated = more daily cases
+
+- **point size**: daily deaths >> points more saturated = more daily deaths
+
+- start day = 10th case reported
+
+- prediction based on data 7 days in the future
+
+
+## Germany
+
+```{r, echo=FALSE}
+
+input_country <- "Germany"
+
+tmp_country <- data_in %>% 
+  filter(countriesAndTerritories==input_country)%>% 
+  filter(day_sum_cases>=10)
+
+plotly::ggplotly(
+ggplot(data = tmp_country ,
+       mapping = aes(day_start,
+                   day_sum_cases,
+                   label=dateRep))+
+  geom_point(aes(size=deaths,alpha=cases))+
+  stat_smooth(method = "gam",fullrange = T,formula = y ~ s(x, bs = "cs"),color="#01579B")+
+  labs(size = "daily deaths",y = "total cases", x = "start of data recording (days) - since 31.12.2019",
+       title = input_country)+
+  xlim(c(min(tmp_country$day_start),max(tmp_country$day_start)+7))+
+  theme_ipsum_rc(base_size = 13)
+)
+```
+
+## USA
+
+```{r, echo=FALSE}
+
+input_country <- "United_States_of_America"
+
+tmp_country <- data_in %>% 
+  filter(countriesAndTerritories==input_country)%>% 
+  filter(day_sum_cases>=10)
+
+plotly::ggplotly(
+ggplot(data = tmp_country ,
+       mapping = aes(day_start,
+                   day_sum_cases,
+                   label=dateRep))+
+  geom_point(aes(size=deaths,alpha=cases))+
+  stat_smooth(method = "gam",fullrange = T,formula = y ~ s(x, bs = "cs"),color="#01579B")+
+  labs(size = "daily deaths",y = "total cases", x = "start of data recording (days) - since 31.12.2019",
+       title = input_country)+
+  xlim(c(min(tmp_country$day_start),max(tmp_country$day_start)+7))+
+  theme_ipsum_rc(base_size = 13)
+)
+```
+
+## Italy
+
+```{r, echo=FALSE}
+
+input_country <- "Italy"
+
+tmp_country <- data_in %>% 
+  filter(countriesAndTerritories==input_country)%>% 
+  filter(day_sum_cases>=10)
+
+plotly::ggplotly(
+ggplot(data = tmp_country ,
+       mapping = aes(day_start,
+                   day_sum_cases,
+                   label=dateRep))+
+  geom_point(aes(size=deaths,alpha=cases))+
+  stat_smooth(method = "gam",fullrange = T,formula = y ~ s(x, bs = "cs"),color="#01579B")+
+  labs(size = "daily deaths",y = "total cases", x = "start of data recording (days) - since 31.12.2019",
+       title = input_country)+
+  xlim(c(min(tmp_country$day_start),max(tmp_country$day_start)+7))+
+  theme_ipsum_rc(base_size = 13)
+)
+```
+
+## Spain
+
+```{r, echo=FALSE}
+
+input_country <- "Spain"
+
+tmp_country <- data_in %>% 
+  filter(countriesAndTerritories==input_country)%>% 
+  filter(day_sum_cases>=10)
+
+plotly::ggplotly(
+ggplot(data = tmp_country ,
+       mapping = aes(day_start,
+                   day_sum_cases,
+                   label=dateRep))+
+  geom_point(aes(size=deaths,alpha=cases))+
+  stat_smooth(method = "gam",fullrange = T,formula = y ~ s(x, bs = "cs"),color="#01579B")+
+  labs(size = "daily deaths",y = "total cases", x = "start of data recording (days) - since 31.12.2019",
+       title = input_country)+
+  xlim(c(min(tmp_country$day_start),max(tmp_country$day_start)+7))+
+  theme_ipsum_rc(base_size = 13)
+)
+```
+
+## France
+
+```{r, echo=FALSE}
+
+input_country <- "France"
+
+tmp_country <- data_in %>% 
+  filter(countriesAndTerritories==input_country)%>% 
+  filter(day_sum_cases>=10)
+
+plotly::ggplotly(
+ggplot(data = tmp_country ,
+       mapping = aes(day_start,
+                   day_sum_cases,
+                   label=dateRep))+
+  geom_point(aes(size=deaths,alpha=cases))+
+  stat_smooth(method = "gam",fullrange = T,formula = y ~ s(x, bs = "cs"),color="#01579B")+
+  labs(size = "daily deaths",y = "total cases", x = "start of data recording (days) - since 31.12.2019",
+       title = input_country)+
+  xlim(c(min(tmp_country$day_start),max(tmp_country$day_start)+7))+
+  theme_ipsum_rc(base_size = 13)
+)
+```
+
+## United Kingdom
+
+```{r, echo=FALSE}
+
+input_country <- "United_Kingdom"
+
+tmp_country <- data_in %>% 
+  filter(countriesAndTerritories==input_country)%>% 
+  filter(day_sum_cases>=10)
+
+plotly::ggplotly(
+ggplot(data = tmp_country ,
+       mapping = aes(day_start,
+                   day_sum_cases,
+                   label=dateRep))+
+  geom_point(aes(size=deaths,alpha=cases))+
+  stat_smooth(method = "gam",fullrange = T,formula = y ~ s(x, bs = "cs"),color="#01579B")+
+  labs(size = "daily deaths",y = "total cases", x = "start of data recording (days) - since 31.12.2019",
+       title = input_country)+
+  xlim(c(min(tmp_country$day_start),max(tmp_country$day_start)+7))+
+  theme_ipsum_rc(base_size = 13)
+)
+```
+
+## Sweden
+
+```{r, echo=FALSE}
+
+input_country <- "Sweden"
+
+tmp_country <- data_in %>% 
+  filter(countriesAndTerritories==input_country)%>% 
+  filter(day_sum_cases>=10)
+
+plotly::ggplotly(
+ggplot(data = tmp_country ,
+       mapping = aes(day_start,
+                   day_sum_cases,
+                   label=dateRep))+
+  geom_point(aes(size=deaths,alpha=cases))+
+  stat_smooth(method = "gam",fullrange = T,formula = y ~ s(x, bs = "cs"),color="#01579B")+
+  labs(size = "daily deaths",y = "total cases", x = "start of data recording (days) - since 31.12.2019",
+       title = input_country)+
+  xlim(c(min(tmp_country$day_start),max(tmp_country$day_start)+7))+
+  theme_ipsum_rc(base_size = 13)
+)
+```
+
+
+## Netherlands
+
+```{r, echo=FALSE}
+
+input_country <- "Netherlands"
+
+tmp_country <- data_in %>% 
+  filter(countriesAndTerritories==input_country)%>% 
+  filter(day_sum_cases>=10)
+
+plotly::ggplotly(
+ggplot(data = tmp_country ,
+       mapping = aes(day_start,
+                   day_sum_cases,
+                   label=dateRep))+
+  geom_point(aes(size=deaths,alpha=cases))+
+  stat_smooth(method = "gam",fullrange = T,formula = y ~ s(x, bs = "cs"),color="#01579B")+
+  labs(size = "daily deaths",y = "total cases", x = "start of data recording (days) - since 31.12.2019",
+       title = input_country)+
+  xlim(c(min(tmp_country$day_start),max(tmp_country$day_start)+7))+
+  theme_ipsum_rc(base_size = 13)
+)
+```
+
+## Switzerland
+
+```{r, echo=FALSE}
+
+input_country <- "Switzerland"
+
+tmp_country <- data_in %>% 
+  filter(countriesAndTerritories==input_country)%>% 
+  filter(day_sum_cases>=10)
+
+plotly::ggplotly(
+ggplot(data = tmp_country ,
+       mapping = aes(day_start,
+                   day_sum_cases,
+                   label=dateRep))+
+  geom_point(aes(size=deaths,alpha=cases))+
+  stat_smooth(method = "gam",fullrange = T,formula = y ~ s(x, bs = "cs"),color="#01579B")+
+  labs(size = "daily deaths",y = "total cases", x = "start of data recording (days) - since 31.12.2019",
+       title = input_country)+
+  xlim(c(min(tmp_country$day_start),max(tmp_country$day_start)+7))+
+  theme_ipsum_rc(base_size = 13)
+)
+```
+
+
+
+## China
+
+```{r, echo=FALSE}
+
+input_country <- "China"
+
+tmp_country <- data_in %>% 
+  filter(countriesAndTerritories==input_country)%>% 
+  filter(day_sum_cases>=10)
+
+plotly::ggplotly(
+ggplot(data = tmp_country ,
+       mapping = aes(day_start,
+                   day_sum_cases,
+                   label=dateRep))+
+  geom_point(aes(size=deaths,alpha=cases))+
+  stat_smooth(method = "gam",fullrange = T,formula = y ~ s(x, bs = "cs"),color="#01579B")+
+  labs(size = "daily deaths",y = "total cases", x = "start of data recording (days) - since 31.12.2019",
+       title = input_country)+
+  xlim(c(min(tmp_country$day_start),max(tmp_country$day_start)+7))+
+  theme_ipsum_rc(base_size = 13)
+)
+```
+
+
+## South Korea
+
+```{r, echo=FALSE}
+
+input_country <- "South_Korea"
+
+tmp_country <- data_in %>% 
+  filter(countriesAndTerritories==input_country)%>% 
+  filter(day_sum_cases>=10)
+
+plotly::ggplotly(
+ggplot(data = tmp_country ,
+       mapping = aes(day_start,
+                   day_sum_cases,
+                   label=dateRep))+
+  geom_point(aes(size=deaths,alpha=cases))+
+  stat_smooth(method = "gam",fullrange = T,formula = y ~ s(x, bs = "cs"),color="#01579B")+
+  labs(size = "daily deaths",y = "total cases", x = "start of data recording (days) - since 31.12.2019",
+       title = input_country)+
+  xlim(c(min(tmp_country$day_start),max(tmp_country$day_start)+7))+
+  theme_ipsum_rc(base_size = 13)
+)
+```
+
 # current status 
 ```{r,fig.width=10,fig.height=2}
 SummaryValueBoxes
@@ -361,21 +650,31 @@ global_cases_deaths_daily_plot/global_cases_deaths_overall_plot
 
 
 ```{r}
-DT::datatable(data_aggregated, 
+DT::datatable(current_data_in, 
           rownames = F,
           filter = 'top', 
           options = list(pageLength = 10, autoWidth = TRUE),
-          caption = 'cases/deaths reported since 2019-12-31 by country')%>% formatStyle(columns = c('sum_of_deaths'),
-  background = styleColorBar(range(data_aggregated[,-c(1:2)]), '#E91909'),
+          caption = 'cases/deaths reported since 2019-12-31 by country') %>% 
+formatStyle(columns = c('total_deaths'),
+  background = styleColorBar(range(unlist(current_data_in[,"total_deaths"]),na.rm = T), '#B71C1C'),#deaths
   backgroundSize = '98% 88%',
   backgroundRepeat = 'no-repeat',
-  backgroundPosition = 'center')%>% 
-formatStyle(columns = c('sum_of_cases'),
-  background = styleColorBar(range(data_aggregated[,-c(1,3)]), '#337CBA'),
+  backgroundPosition = 'center') %>% 
+formatStyle(columns = c('total_cases'),
+  background = styleColorBar(range(unlist(current_data_in[,"total_cases"]),na.rm = T), '#01579B'),#cases
+  backgroundSize = '98% 88%',
+  backgroundRepeat = 'no-repeat',
+  backgroundPosition = 'center') %>% 
+formatStyle(columns = c('cases'),
+  background = styleColorBar(range(unlist(current_data_in[,"cases"]),na.rm = T), '#006064'),#cases by day
+  backgroundSize = '98% 88%',
+  backgroundRepeat = 'no-repeat',
+  backgroundPosition = 'center') %>% 
+formatStyle(columns = c('deaths'),
+  background = styleColorBar(range(unlist(current_data_in[,"deaths"]),na.rm = T), '#BF360C'),#deaths by day
   backgroundSize = '98% 88%',
   backgroundRepeat = 'no-repeat',
   backgroundPosition = 'center')
-
 ```
 
 # cases and deaths over time {.tabset .tabset-fade}
