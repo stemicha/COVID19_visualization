@@ -24,7 +24,7 @@ COVID 2019 data from European Centre for Disease Prevention and Control
 
 
 <!-- CALCULATIONS -->
-```{r}
+```{r calculations}
 # COVID 2019 data from European Centre for Disease Prevention and Control
 
 
@@ -370,7 +370,7 @@ case_plot_1000th_case_facet <- ggplot(data_filtered %>% filter(days_since_1000th
 
 ## Germany
 
-```{r, echo=FALSE}
+```{r GermanyTimeLine, echo=FALSE}
 
 input_country <- "Germany"
 
@@ -394,7 +394,7 @@ ggplot(data = tmp_country ,
 
 ## USA
 
-```{r, echo=FALSE}
+```{r USATimeLine, echo=FALSE}
 
 input_country <- "United_States_of_America"
 
@@ -418,7 +418,7 @@ ggplot(data = tmp_country ,
 
 ## Italy
 
-```{r, echo=FALSE}
+```{r ItalyTimeLine, echo=FALSE}
 
 input_country <- "Italy"
 
@@ -442,7 +442,7 @@ ggplot(data = tmp_country ,
 
 ## Spain
 
-```{r, echo=FALSE}
+```{r SpainTimeLine, echo=FALSE}
 
 input_country <- "Spain"
 
@@ -466,7 +466,7 @@ ggplot(data = tmp_country ,
 
 ## France
 
-```{r, echo=FALSE}
+```{r FranceTimeLine, echo=FALSE}
 
 input_country <- "France"
 
@@ -490,7 +490,7 @@ ggplot(data = tmp_country ,
 
 ## United Kingdom
 
-```{r, echo=FALSE}
+```{r UKTimeLine, echo=FALSE}
 
 input_country <- "United_Kingdom"
 
@@ -514,7 +514,7 @@ ggplot(data = tmp_country ,
 
 ## Sweden
 
-```{r, echo=FALSE}
+```{r SwedenTimeLine, echo=FALSE}
 
 input_country <- "Sweden"
 
@@ -539,7 +539,7 @@ ggplot(data = tmp_country ,
 
 ## Netherlands
 
-```{r, echo=FALSE}
+```{r NetherlandsTimeLine, echo=FALSE}
 
 input_country <- "Netherlands"
 
@@ -563,7 +563,7 @@ ggplot(data = tmp_country ,
 
 ## Switzerland
 
-```{r, echo=FALSE}
+```{r SwitzerlandTimeLine, echo=FALSE}
 
 input_country <- "Switzerland"
 
@@ -589,7 +589,7 @@ ggplot(data = tmp_country ,
 
 ## China
 
-```{r, echo=FALSE}
+```{r ChinaTimeLine, echo=FALSE}
 
 input_country <- "China"
 
@@ -614,7 +614,7 @@ ggplot(data = tmp_country ,
 
 ## South Korea
 
-```{r, echo=FALSE}
+```{r SouthKoreaTimeLine, echo=FALSE}
 
 input_country <- "South_Korea"
 
@@ -637,19 +637,19 @@ ggplot(data = tmp_country ,
 ```
 
 # current status 
-```{r,fig.width=10,fig.height=2}
+```{r ValueBoxes,fig.width=10,fig.height=2}
 SummaryValueBoxes
 ```
 
 The cases/deaths reported since 2019-12-31 by country.
 
-```{r,fig.width=10,fig.height=12}
+```{r stackedGlobalPlots,fig.width=10,fig.height=12}
 global_cases_deaths_daily_plot/global_cases_deaths_overall_plot
 ```
 
 
 
-```{r}
+```{r datatable}
 DT::datatable(current_data_in, 
           rownames = F,
           filter = 'top', 
