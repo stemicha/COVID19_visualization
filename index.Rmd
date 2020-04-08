@@ -29,6 +29,7 @@ COVID 2019 data from European Centre for Disease Prevention and Control
 
 
 #these libraries are necessary
+library(R0)
 library(shiny)
 library(readxl)
 library(httr)
@@ -352,6 +353,26 @@ case_plot_1000th_case_facet <- ggplot(data_filtered %>% filter(days_since_1000th
   guides(linetype=F)+
   facet_wrap(~countriesAndTerritories)
 
+
+
+
+#calculate R0----
+
+Germany_cases_100 <- data_filtered %>% filter(countriesAndTerritories=="Germany" & days_since_1000th_case>=-8)
+Germany_cases_100_vector <- Germany_cases_100$cases
+names(Germany_cases_100_vector) <- Germany_cases_100$dateRep
+mGT <- generation.time(type = "gamma",val =  c(3,2))
+TD <- est.R0.TD(rev(Germany_cases_100_vector), mGT, nsim=10000)## Results will include "most likely R(t)" (ie. the R(t)
+R0_Germany <- tibble(dateRep = names(TD$R),R0 = TD$R,lower_CI = TD$conf.int$lower,upper_CI = TD$conf.int$upper)
+
+R0_Germany_plot<- ggplot(R0_Germany,aes(as_date(dateRep),R0))+
+  geom_point(color="grey",size=3)+
+  geom_line(color="grey",size=1.5)+
+  scale_y_continuous(breaks=seq(0,8,by = 0.5))+
+  theme_ipsum_rc(base_size = 18)+
+  labs(title = "Germany: R0",subtitle = "generation time (gamma distribution with a mean of 3 (SD=2)")+
+  geom_text_repel(mapping = aes(label = paste(dateRep,"\nR0 = ",round(R0,2),sep="")),size=2)
+
 ```
 
 <!-- START RMD display here -->
@@ -370,6 +391,11 @@ case_plot_1000th_case_facet <- ggplot(data_filtered %>% filter(days_since_1000th
 
 
 ## Germany
+
+```{r RzeroGermany}
+R0_Germany_plot
+```
+
 
 ```{r GermanyTimeLine, echo=FALSE}
 
